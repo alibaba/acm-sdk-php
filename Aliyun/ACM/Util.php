@@ -13,4 +13,12 @@ class Aliyun_ACM_Util{
     public static function isIpv4($ipAddress){
         return is_numeric(ip2long($ipAddress));
     }
+
+    public static function readFromFile(){
+
+    }
+
+    public static function saveToFile(){
+
+    }
 }

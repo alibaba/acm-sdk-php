@@ -65,6 +65,12 @@ class Aliyun_ACM_Client {
             print '[getServerList] got invalid http response: ('.$server_host.'.';
         }
         $serverRawList = $request->get_response_body();
+        return $serverRawList;
+    }
+
+    public function refreshServerList(){
+        $this->serverList = array();
+        $serverRawList = $this->getServerList();
         if(is_string($serverRawList)){
             $serverArray = explode('\n', $serverRawList);
             foreach ($serverArray as $value){
@@ -83,8 +89,10 @@ class Aliyun_ACM_Client {
                 $this->serverList[$singleServer->url] = $singleServer;
             }
         }
-        return $request->get_response_body();
     }
 
+    public function getData(){
+
+    }
 
 }
