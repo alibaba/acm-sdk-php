@@ -10,9 +10,10 @@ $client = new Aliyun_ACM_Client('acm.aliyun.com','8080');
 $resp = $client->getServerList();
 $client->refreshServerList();
 
-$client->setNameSpace('${namespace}');
-$client->setAccessKey('${accessKey}');
-$client->setSecretKey('${secretKey}');
+$client->setNameSpace('namespace');
+$client->setAccessKey('accesskey');
+$client->setSecretKey('secretkey');
+$client->setAppName("appname");
 
 echo $client->getConfig('test.test',null)."\n";
 
