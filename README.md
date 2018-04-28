@@ -19,13 +19,16 @@ PHP SDK for ACM.
 1. ACM 1.0
 
 ### Change Logs
-TODO
+- get server list from ACM
+    - refresh manually(Client->refreshServerList)
+- get config data from ACM
+    - no lisener, update manually(Client->getData)
 
 ## Installation
-TODO
+- add the php libary to your project
 
 ## Getting Started
-TODO
+- please check the sample.php
 
 ## Configuration
 TODO

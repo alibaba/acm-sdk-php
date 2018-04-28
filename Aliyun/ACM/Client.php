@@ -24,6 +24,8 @@ class Aliyun_ACM_Client {
 
     protected $port;
 
+    protected $appName;
+
     public $serverList = array();
 
     public function __construct($endpoint, $port){
@@ -55,7 +57,15 @@ class Aliyun_ACM_Client {
         $this->nameSpace = $nameSpace;
     }
 
-    public function getServerList(){
+    /**
+     * @param mixed $appName
+     */
+    public function setAppName($appName)
+    {
+        $this->appName = $appName;
+    }
+
+    private function getServerListStr(){
         $server_host = str_replace(array('host','port'), array($this->endPoint, $this->port),
             'http://host:port/diamond-server/diamond');
         $request = new RequestCore();
@@ -70,7 +80,7 @@ class Aliyun_ACM_Client {
 
     public function refreshServerList(){
         $this->serverList = array();
-        $serverRawList = $this->getServerList();
+        $serverRawList = $this->getServerListStr();
         if(is_string($serverRawList)){
             $serverArray = explode('\n', $serverRawList);
             foreach ($serverArray as $value){
@@ -91,8 +101,142 @@ class Aliyun_ACM_Client {
         }
     }
 
-    public function getData(){
+    public function getServerList(){
+        return $this->serverList;
+    }
 
+    public function getConfig($dataId, $group){
+        if(!is_string($this->secretKey) ||
+            !is_string($this->accessKey)){
+            throw new Aliyun_ACM_Exception ( 'Invalid auth string', "invalid auth info for dataId: $dataId" );
+        }
+
+        Aliyun_ACM_Util::checkDataId($dataId);
+        $group = Aliyun_ACM_Util::checkGroup($group);
+
+        $servers = $this->serverList;
+        $singleServer = $servers[array_rand($servers)];
+
+        $acm_host = str_replace(array('host','port'), array($singleServer->url, $singleServer->port),
+            'http://host:port/diamond-server/config.co');
+
+        $acm_host .= "?dataId=".urlencode($dataId)."&group=".urlencode($group)
+            ."&tenant=".urlencode($this->nameSpace);
+
+        $request = new RequestCore();
+        $request->set_request_url($acm_host);
+
+        $headers = $this->getCommonHeaders($group);
+
+        foreach ($headers as $header_key => $header_val) {
+            $request->add_header($header_key, $header_val);
+        }
+
+        $request->send_request(true);
+        if($request->get_response_code() != '200'){
+            print '[GETCONFIG] got invalid http response: ('.$acm_host.'.';
+        }
+        $rawData = $request->get_response_body();
+        return $rawData;
+    }
+
+    public function publishConfig($dataId, $group, $content){
+        if(!is_string($this->secretKey) ||
+            !is_string($this->accessKey)){
+            throw new Aliyun_ACM_Exception ( 'Invalid auth string', "invalid auth info for dataId: $dataId" );
+        }
+
+        Aliyun_ACM_Util::checkDataId($dataId);
+        $group = Aliyun_ACM_Util::checkGroup($group);
+
+        $servers = $this->serverList;
+        $singleServer = $servers[array_rand($servers)];
+
+        $acm_host = str_replace(array('host','port'), array($singleServer->url, $singleServer->port),
+            'http://host:port/diamond-server/basestone.do?method=syncUpdateAll');
+
+        $acm_body = "dataId=".urlencode($dataId)."&group=".urlencode($group)
+                ."&tenant=".urlencode($this->nameSpace)
+                ."&content=".urlencode($content);
+        if(is_string($this->appName)){
+            $acm_body .= "&appName=".$this->appName;
+        }
+
+        $request = new RequestCore();
+        $request->set_body($acm_body);
+        $request->set_request_url($acm_host);
+
+        $headers = $this->getCommonHeaders($group);
+
+        foreach ($headers as $header_key => $header_val) {
+            $request->add_header($header_key, $header_val);
+        }
+        $request->set_method("post");
+        $request->send_request(true);
+        if($request->get_response_code() != '200'){
+            print '[PUBLISHCONFIG] got invalid http response: ('.$acm_host.'#'.$request->get_response_code();
+        }
+        $rawData = $request->get_response_body();
+        return $rawData;
+    }
+
+    public function removeConfig($dataId, $group){
+        if(!is_string($this->secretKey) ||
+            !is_string($this->accessKey)){
+            throw new Aliyun_ACM_Exception ( 'Invalid auth string', "invalid auth info for dataId: $dataId" );
+        }
+
+        Aliyun_ACM_Util::checkDataId($dataId);
+        $group = Aliyun_ACM_Util::checkGroup($group);
+
+        $servers = $this->serverList;
+        $singleServer = $servers[array_rand($servers)];
+
+        $acm_host = str_replace(array('host','port'), array($singleServer->url, $singleServer->port),
+            'http://host:port/diamond-server//datum.do?method=deleteAllDatums');
+
+        $acm_body = "dataId=".urlencode($dataId)."&group=".urlencode($group)
+            ."&tenant=".urlencode($this->nameSpace);
+
+        $request = new RequestCore();
+        $request->set_body($acm_body);
+        $request->set_request_url($acm_host);
+
+        $headers = $this->getCommonHeaders($group);
+
+        foreach ($headers as $header_key => $header_val) {
+            $request->add_header($header_key, $header_val);
+        }
+        $request->set_method("post");
+        $request->send_request(true);
+        if($request->get_response_code() != '200'){
+            print '[REMOVECONFIG] got invalid http response: ('.$acm_host.'#'.$request->get_response_code();
+        }
+        $rawData = $request->get_response_body();
+        return $rawData;
+    }
+
+    private function getCommonHeaders($group){
+        $headers = array();
+        $headers['Diamond-Client-AppName'] = 'ACM-SDK-PHP';
+        $headers['Client-Version'] = '0.0.1';
+        $headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=utf-8';
+        $headers['exConfigInfo'] =  'true';
+        $headers['Spas-AccessKey'] = $this->accessKey;
+
+        $ts = round(microtime(true) * 1000);
+        $headers['timeStamp'] = $ts;
+
+        $signStr = $this->nameSpace.'+';
+        if(is_string($group)){
+            $signStr .= $group . "+";
+        }
+        $signStr = $signStr.$ts;
+
+        var_dump($signStr);
+        $headers['Spas-Signature'] = base64_encode(hash_hmac('sha1', $signStr, $this->secretKey,true));
+        var_dump($headers);
+        return $headers;
     }
 
 }
