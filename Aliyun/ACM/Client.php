@@ -82,7 +82,8 @@ class Aliyun_ACM_Client {
         $this->serverList = array();
         $serverRawList = $this->getServerListStr();
         if(is_string($serverRawList)){
-            $serverArray = explode('\n', $serverRawList);
+            $serverArray = explode("\n", $serverRawList);
+            $serverArray = array_filter($serverArray);
             foreach ($serverArray as $value){
                 $value = trim($value);
                 $singleServerList = explode(':', $value);
