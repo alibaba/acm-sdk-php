@@ -233,10 +233,7 @@ class Aliyun_ACM_Client {
             $signStr .= $group . "+";
         }
         $signStr = $signStr.$ts;
-
-        var_dump($signStr);
         $headers['Spas-Signature'] = base64_encode(hash_hmac('sha1', $signStr, $this->secretKey,true));
-        var_dump($headers);
         return $headers;
     }
 
