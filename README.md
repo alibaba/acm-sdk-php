@@ -13,7 +13,7 @@ PHP SDK for ACM.
 
 ### Supported PHP：
 
-1. PHP 7.2
+1. PHP 7.2 +
 
 ### Supported ACM version
 1. ACM 1.0
