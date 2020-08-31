@@ -25,7 +25,9 @@ class Aliyun_ACM_Client {
     protected $port;
 
     protected $appName;
-
+    
+    public $errors;
+    
     public $serverList = array();
 
     public function __construct($endpoint, $port){
@@ -234,6 +236,67 @@ class Aliyun_ACM_Client {
         }
         $signStr = $signStr.$ts;
         $headers['Spas-Signature'] = base64_encode(hash_hmac('sha1', $signStr, $this->secretKey,true));
+        return $headers;
+    }
+    
+    /**
+     * 监听配置变化
+     *
+     * @param string $dataId
+     * @param string $group
+     * @param string $tenant
+     * @param string $content
+     *
+     * @return false|mixed|string
+     * @throws \Aliyun_ACM_Exception
+     * @throws \RequestCore_Exception
+     * @link https://help.aliyun.com/document_detail/64132.html?spm=a2c4g.11186623.6.577.67395d3eu7PD6q
+     */
+    public function listenConfig($dataId, $group, $tenant, $content)
+    {
+        if ( !is_string($this->secretKey) ||
+            !is_string($this->accessKey)) {
+            throw new Aliyun_ACM_Exception ('Invalid auth string', "invalid auth info for dataId:");
+        }
+        Aliyun_ACM_Util::checkDataId($dataId);
+        $group = Aliyun_ACM_Util::checkGroup($group);
+        $servers = $this->serverList;
+        $singleServer = $servers[array_rand($servers)];
+        $acm_host = str_replace(array('host', 'port'), array($singleServer->url, $singleServer->port),
+            'http://host:port/diamond-server/config.co');
+        $content_md5 = md5($content);
+        $acm_host .= "?Probe-Modify-Request={$dataId}%02{$group}%02{$content_md5}%02{$tenant}%01";
+        $request = new RequestCore();
+        $request->method = $request::HTTP_POST;
+        $request->set_request_url($acm_host);
+        $headers = $this->getHttpApiHeaders($group);
+        foreach ($headers as $header_key => $header_val) {
+            $request->add_header($header_key, $header_val);
+        }
+        $request->send_request(true);
+        if ($request->get_response_code() != '200') {
+            $this->errors = $request->get_response_body();
+            
+            return false;
+        }
+        $response_header = $request->get_response_header();
+        
+        return isset($response_header['probe-modify-response-new']) ? $response_header['probe-modify-response-new'] : '';
+    }
+    
+    private function getHttpApiHeaders($group)
+    {
+        $headers = array();
+        $headers['Spas-AccessKey'] = $this->accessKey;
+        $ts = round(microtime(true) * 1000);
+        $headers['timeStamp'] = $ts;
+        $signStr = $this->nameSpace . '+';
+        if (is_string($group)) {
+            $signStr .= $group . "+";
+        }
+        $signStr = $signStr . $ts;
+        $headers['Spas-Signature'] = base64_encode(hash_hmac('sha1', $signStr, $this->secretKey, true));
+        
         return $headers;
     }
 
