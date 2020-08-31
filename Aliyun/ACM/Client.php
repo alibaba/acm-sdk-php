@@ -276,12 +276,11 @@ class Aliyun_ACM_Client {
         $request->send_request(true);
         if ($request->get_response_code() != '200') {
             $this->errors = $request->get_response_body();
-            
+        
             return false;
         }
-        $response_header = $request->get_response_header();
-        
-        return isset($response_header['probe-modify-response-new']) ? $response_header['probe-modify-response-new'] : '';
+    
+        return $request->get_response_body();
     }
     
     private function getHttpApiHeaders($group)
@@ -290,6 +289,7 @@ class Aliyun_ACM_Client {
         $headers['Spas-AccessKey'] = $this->accessKey;
         $ts = round(microtime(true) * 1000);
         $headers['timeStamp'] = $ts;
+        $headers['longPullingTimeout'] = 30000;
         $signStr = $this->nameSpace . '+';
         if (is_string($group)) {
             $signStr .= $group . "+";
